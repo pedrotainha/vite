@@ -1,7 +1,7 @@
 import { Plugin, ResolvedConfig, UserConfig } from 'vite';
 import { mapCodeToCodeWithSourcemap } from '../utils/mapCodeToCodeWithSourcemap';
 import { NormalizedShared } from '../utils/normalizeModuleFederationOptions';
-import { hasPackageDependency, setPackageDetectionCwd } from '../utils/packageUtils';
+import { setPackageDetectionCwd } from '../utils/packageUtils';
 import { PromiseStore } from '../utils/PromiseStore';
 import VirtualModule, { assertModuleFound } from '../utils/VirtualModule';
 import {
@@ -24,7 +24,6 @@ export function proxySharedModule(options: {
   const { shared = {} } = options;
   let _config: ResolvedConfig | undefined;
   let _command = 'serve';
-  let isVinext = false;
   const savePrebuild = new PromiseStore<string>();
 
   return [
@@ -50,13 +49,12 @@ export function proxySharedModule(options: {
       config(config: UserConfig, { command }) {
         const root = config.root || process.cwd();
         setPackageDetectionCwd(root);
-        isVinext = hasPackageDependency('vinext');
         const isRolldown = !!(this as any)?.meta?.rolldownVersion;
         _command = command;
 
         (config.resolve as any).alias.push(
           ...Object.keys(shared)
-            .filter((key) => !(isVinext && key === 'react'))
+            .filter((key) => !(command === 'serve' && key === 'react'))
             .map((key) => {
               const keyBase = key.endsWith('/') ? key.slice(0, -1) : key;
               const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -72,14 +70,6 @@ export function proxySharedModule(options: {
                 replacement: '$1',
                 customResolver(source: string, importer: string) {
                   if (/\.css$/.test(source)) return;
-                  // Hard-stop proxying bare React in dev. Vite's RSC pipeline
-                  // expects the native server React entry, and wrapping `react`
-                  // through loadShare breaks react-server-dom-webpack.
-                  // We still register React in the federation share scope via
-                  // localSharedImportMap, so shared metadata remains available.
-                  if (isVinext && source === 'react') {
-                    return;
-                  }
                   // Skip for localSharedImportMap to break circular TLA deadlock:
                   // loadShare TLA → runtime.loadShare() → get() → import(prebuild)
                   // → alias to pkg name → shared alias → loadShare (DEADLOCK)
@@ -108,7 +98,7 @@ export function proxySharedModule(options: {
 
         (config.resolve as any).alias.push(
           ...Object.keys(shared)
-            .filter((key) => !(isVinext && key === 'react'))
+            .filter((key) => !(command === 'serve' && key === 'react'))
             .map((key) => {
               return command === 'build'
                 ? {
@@ -151,7 +141,7 @@ export function proxySharedModule(options: {
         const isRolldown = !!(config as any).experimental?.rolldownDev;
         Object.keys(shared).forEach((key) => {
           if (key.endsWith('/')) return;
-          if (isVinext && key === 'react') {
+          if (_command === 'serve' && key === 'react') {
             addUsedShares(key);
             return;
           }

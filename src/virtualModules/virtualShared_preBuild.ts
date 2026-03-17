@@ -109,11 +109,11 @@ export function writeLoadShareModule(
     const namedExportLine = `export { ${namedExports.map((name, i) => `__mf_${i} as ${name}`).join(', ')} };`;
     exportLine = useESM
       ? `export default exportModule;\n    ${destructure}\n    ${namedExportLine}`
-      : `module.exports = exportModule;\n    ${destructure}\n    Object.assign(module.exports, { ${namedExports.map((name, i) => `"${name}": __mf_${i}`).join(', ')} });`;
+      : `const cjsExport = exportModule?.__esModule && "default" in exportModule ? exportModule.default : exportModule;\n    module.exports = cjsExport;\n    ${destructure}\n    Object.assign(module.exports, exportModule, { ${namedExports.map((name, i) => `"${name}": __mf_${i}`).join(', ')} });`;
   } else {
     exportLine = useESM
       ? `export default exportModule\n    export * from ${JSON.stringify(getPreBuildLibImportId(pkg))}`
-      : 'module.exports = exportModule';
+      : `const cjsExport = exportModule?.__esModule && "default" in exportModule ? exportModule.default : exportModule;\n    module.exports = cjsExport;\n    Object.assign(module.exports, exportModule);`;
   }
 
   loadShareCacheMap[pkg].writeSync(`

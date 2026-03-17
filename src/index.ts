@@ -58,8 +58,6 @@ function createEarlyVirtualModulesPlugin(options: NormalizedModuleFederationOpti
     config(config: UserConfig, { command: _command }) {
       const root = config.root || process.cwd();
       setPackageDetectionCwd(root);
-      const isVinext = hasPackageDependency('vinext');
-
       // Create the virtual module directory structure EARLY
       initVirtualModuleInfrastructure(root, virtualModuleDir);
 
@@ -95,7 +93,7 @@ function createEarlyVirtualModulesPlugin(options: NormalizedModuleFederationOpti
         for (const key of Object.keys(shared)) {
           if (key.endsWith('/')) continue;
           const shareItem = shared[key] as any;
-          if (isVinext && key === 'react') {
+          if (key === 'react') {
             addUsedShares(key);
             continue;
           }

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { hasPackageDependencyMock, writeSyncSpy, writeTempSpy } = vi.hoisted(() => ({
-  hasPackageDependencyMock: vi.fn(),
+const { writeSyncSpy, writeTempSpy } = vi.hoisted(() => ({
   writeSyncSpy: vi.fn(),
   writeTempSpy: vi.fn(),
 }));
@@ -32,12 +31,6 @@ vi.mock('../../utils/localSharedImportMap_temp', () => {
   return {
     getLocalSharedImportMapPath_temp: () => '/virtual/localSharedImportMap.js',
     writeLocalSharedImportMap_temp: writeTempSpy,
-  };
-});
-
-vi.mock('../../utils/packageUtils', () => {
-  return {
-    hasPackageDependency: hasPackageDependencyMock,
   };
 });
 
@@ -79,7 +72,6 @@ vi.mock('../virtualShared_preBuild', () => {
 
 describe('virtualRemoteEntry', () => {
   beforeEach(async () => {
-    hasPackageDependencyMock.mockReset();
     writeSyncSpy.mockClear();
     writeTempSpy.mockClear();
     vi.resetModules();
@@ -87,35 +79,23 @@ describe('virtualRemoteEntry', () => {
 
   for (const testCase of [
     {
-      name: 'keeps react as a direct import in localSharedImportMap when vinext is enabled',
+      name: 'keeps react as a direct import in localSharedImportMap',
       pkg: 'react',
-      hasVinext: true,
       expectedImport: 'let pkg = await import("react");',
       expectedExportShape: '? (res?.default ?? res)',
       unexpectedImport: 'virtual:shared-provider:react',
-    },
-    {
-      name: 'uses shared provider for react in localSharedImportMap when vinext is disabled',
-      pkg: 'react',
-      hasVinext: false,
-      expectedImport: 'virtual:prebuild:react',
-      expectedExportShape: ': {...res}',
-      unexpectedImport: 'let pkg = await import("react");',
+      expectedLoaded: 'loaded: true',
     },
     {
       name: 'uses prebuild import for non-react modules in localSharedImportMap',
       pkg: 'vue',
-      hasVinext: true,
       expectedImport: 'virtual:prebuild:vue',
       expectedExportShape: ': {...res}',
       unexpectedImport: 'let pkg = await import("vue");',
+      expectedLoaded: 'loaded: false',
     },
   ]) {
     it(testCase.name, async () => {
-      hasPackageDependencyMock.mockImplementation((pkg: string) => {
-        return pkg === 'vinext' ? testCase.hasVinext : false;
-      });
-
       const mod = await import('../virtualRemoteEntry');
 
       mod.getUsedShares().clear();
@@ -125,15 +105,12 @@ describe('virtualRemoteEntry', () => {
 
       expect(code).toContain(testCase.expectedImport);
       expect(code).toContain(testCase.expectedExportShape);
+      expect(code).toContain(testCase.expectedLoaded);
       expect(code).not.toContain(testCase.unexpectedImport);
     });
   }
 
   it('writes host auto init waiting on __tla before init', async () => {
-    hasPackageDependencyMock.mockImplementation((pkg: string) => {
-      return pkg === 'vinext';
-    });
-
     const mod = await import('../virtualRemoteEntry');
 
     mod.writeHostAutoInit('virtual:test-remote-entry');

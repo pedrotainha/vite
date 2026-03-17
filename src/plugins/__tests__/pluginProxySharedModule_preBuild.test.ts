@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { hasPackageDependencyMock } = vi.hoisted(() => ({
-  hasPackageDependencyMock: vi.fn(),
-}));
-
 vi.mock('../../utils/packageUtils', () => ({
-  hasPackageDependency: hasPackageDependencyMock,
   setPackageDetectionCwd: vi.fn(),
 }));
 
@@ -41,44 +36,40 @@ function makeShared(): NormalizedShared {
 
 describe('pluginProxySharedModule_preBuild', () => {
   beforeEach(() => {
-    hasPackageDependencyMock.mockReset();
+    vi.clearAllMocks();
   });
 
   for (const testCase of [
     {
-      name: 'does not proxy react through loadShare in serve mode when vinext is enabled',
+      name: 'does not proxy react through loadShare in serve mode',
       source: 'react',
-      hasVinext: true,
+      command: 'serve',
       aliasExpected: false,
       shouldProxy: false,
     },
     {
-      name: 'proxies react through loadShare in serve mode when vinext is disabled',
+      name: 'proxies react through loadShare in build mode',
       source: 'react',
-      hasVinext: false,
+      command: 'build',
       aliasExpected: true,
       shouldProxy: true,
     },
     {
-      name: 'proxies non-react shared modules through loadShare in serve mode when vinext is enabled',
+      name: 'proxies non-react shared modules through loadShare in serve mode',
       source: 'vue',
-      hasVinext: true,
+      command: 'serve',
       aliasExpected: true,
       shouldProxy: true,
     },
     {
-      name: 'proxies non-react shared modules through loadShare in serve mode when vinext is disabled',
+      name: 'proxies non-react shared modules through loadShare in build mode',
       source: 'vue',
-      hasVinext: false,
+      command: 'build',
       aliasExpected: true,
       shouldProxy: true,
     },
   ]) {
     it(testCase.name, async () => {
-      hasPackageDependencyMock.mockImplementation((pkg: string) => {
-        return pkg === 'vinext' ? testCase.hasVinext : false;
-      });
-
       const plugins = proxySharedModule({ shared: makeShared() });
       const proxyPlugin = plugins[1];
       const config = {
@@ -97,7 +88,7 @@ describe('pluginProxySharedModule_preBuild', () => {
         },
         config as any,
         {
-          command: 'serve',
+          command: testCase.command,
           mode: 'development',
         }
       );

@@ -7,7 +7,6 @@ import {
   getNormalizeShareItem,
   NormalizedModuleFederationOptions,
 } from '../utils/normalizeModuleFederationOptions';
-import { hasPackageDependency } from '../utils/packageUtils';
 import { serializeRuntimeOptions } from '../utils/serializeRuntimeOptions';
 import VirtualModule from '../utils/VirtualModule';
 import { getVirtualExposesId } from './virtualExposes';
@@ -41,7 +40,6 @@ export function writeLocalSharedImportMap() {
   }
 }
 export function generateLocalSharedImportMap() {
-  const isVinext = hasPackageDependency('vinext');
   const options = getNormalizeModuleFederationOptions();
   return `
     import {loadShare} from "@module-federation/runtime";
@@ -55,7 +53,7 @@ export function generateLocalSharedImportMap() {
           ${
             shareItem?.shareConfig.import === false
               ? `throw new Error(\`Shared module '\${${JSON.stringify(pkg)}}' must be provided by host\`);`
-              : isVinext && pkg === 'react'
+              : pkg === 'react'
                 ? `let pkg = await import("react");
             return pkg;`
                 : `let pkg = await import("${getPreBuildLibImportId(pkg)}");
@@ -77,7 +75,7 @@ export function generateLocalSharedImportMap() {
             name: ${JSON.stringify(key)},
             version: ${JSON.stringify(shareItem.version)},
             scope: [${JSON.stringify(shareItem.scope)}],
-            loaded: false,
+            loaded: ${key === 'react'},
             from: ${JSON.stringify(options.name)},
             async get () {
               if (${shareItem.shareConfig.import === false}) {
@@ -86,7 +84,7 @@ export function generateLocalSharedImportMap() {
               usedShared[${JSON.stringify(key)}].loaded = true
               const {${JSON.stringify(key)}: pkgDynamicImport} = importMap
               const res = await pkgDynamicImport()
-              const exportModule = ${JSON.stringify(isVinext)} && ${JSON.stringify(key)} === "react"
+              const exportModule = ${JSON.stringify(key)} === "react"
                 ? (res?.default ?? res)
                 : {...res}
               // All npm packages pre-built by vite will be converted to esm
