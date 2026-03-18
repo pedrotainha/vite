@@ -13,6 +13,12 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
+    {
+      command: "pnpm run preview-vite8-tla",
+      url: "http://localhost:5180",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
   ],
   use: {
     trace: "retain-on-failure",
@@ -25,6 +31,14 @@ export default defineConfig({
       testDir: "e2e/vite-webpack-rspack",
       use: {
         baseURL: "http://localhost:5173",
+        browserName: "chromium",
+      },
+    },
+    {
+      name: "vite8-tla",
+      testDir: "e2e/vite8-tla",
+      use: {
+        baseURL: "http://localhost:5180",
         browserName: "chromium",
       },
     },

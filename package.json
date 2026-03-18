@@ -32,6 +32,7 @@
     "dev-vv": "pnpm clean && pnpm -filter 'examples-vite-vite*' run dev",
     "dev-nv": "pnpm clean && pnpm -filter 'examples-nuxt-vite-host' -filter 'examples-vite-vite-remote' run dev",
     "preview-vv": "pnpm clean && pnpm -filter 'examples-vite-vite*' --parallel run preview",
+    "preview-vite8-tla": "pnpm clean && pnpm --filter 'examples-vite8-tla-host' run preview",
     "multi-example": "pnpm clean && pnpm --filter \"multi-example-*\" --parallel run start",
     "test": "vitest run --dir src",
     "test:integration": "vitest run integration",
